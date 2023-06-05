@@ -1,8 +1,8 @@
 #include "mainwindow.h"
-#include "ui_mainwindow.h"
+#include "./ui_mainwindow.h"
 #include <QPainter>
 #include <QMouseEvent>
-#include <QDebug>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -14,85 +14,77 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
-
 }
+
+
 
 void MainWindow::paintEvent(QPaintEvent *event)
 {
-	QPainter painter(this);
+    QPainter painter(this);
+    painter.setBrush(grass);
+    painter.drawRect(contentsRect());
+    painter.setBrush(QColor(0, 128, 128));
+    painter.drawRect(pool);
+    painter.setBrush(QColor(128, 128, 128));
 
-	QRect setka(QPoint(0,0), QSize(B,B));
-	for (int i = 0; i < contentsRect().width();i++){
-		for(int j=0;j < contentsRect().height();j++){
-			painter.drawRect(setka.translated(B * j, B * i));
-		}
-	}
-    if(!c.center.isNull()){
-        painter.setBrush(Qt::green);
-        painter.drawEllipse(c.center, c.radius, c.radius);
-    }
-    if (!ant.isNull()){
-        painter.setBrush(Qt::black);
-        painter.drawEllipse(ant,10,10);
+    for (int i = 0; i < clumbs.size(); i++)
+        painter.drawImage(clumbs[i], flower);
 
-    }
-    if (!fly.isNull()){
-        painter.setBrush(Qt::red);
-        painter.drawEllipse(fly, 10, 10);
-
-    }
-    for (int i = 0; i < min_p.size() - 1;i++){
-        painter.setBrush(Qt::red);
-        painter.drawLine(min_p[i],min_p[i + 1]);
-    }
-    if (!ant.isNull() && !fly.isNull())
-        for(int i = 0; i < min_p.size() - 1; i++){
-            QPen brush(Qt::red);
-            brush.setWidth(4);
-            painter.setPen(brush);
-            painter.drawLine(min_p[i], min_p[i + 1]);
-        }
-
-	ftime(&t1);
-	double dt= (t1.time - t0.time)*1e6 + (t1.millitm - t0.millitm);
-	qDebug() << (t1.time - t0.time) << (t1.millitm - t0.millitm);
-
-
-
+    for (int i = 0; i < c_clumbs.size(); i++)
+        painter.drawEllipse(c_clumbs[i].center, c_clumbs[i].radius, c_clumbs[i].radius);
 }
+
+
+
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button()&Qt::MiddleButton)
-        c = {event->pos(), R};
-
-    if (event->button()&Qt::LeftButton)
-        ant = event->pos()/B*B;
-
-    if (event->button()&Qt::RightButton)
-        fly = event->pos()/B*B;
-    ant_move = ant;
-    min_p.clear();
-    min_p.append(ant);
-
-    while (ant_move != fly && !ant.isNull() && !fly.isNull()){
-        moves[0] = QPoint(-B, 0) + ant_move;
-        moves[1] = QPoint(0, B) + ant_move;
-        moves[2] = QPoint(B, 0) + ant_move;
-        moves[3] = QPoint(0, -B) + ant_move;
-        int min = 9999999;
-        for (int i = 0; i < 4; i++)
-            if (!contains(c, moves[i]) && (min_p.size() == 1 || moves[i] != min_p[min_p.size() - 2])){
-                len = (fly.x() - moves[i].x()) * (fly.x() - moves[i].x()) + (fly.y() - moves[i].y()) * (fly.y() - moves[i].y());
-                if (len <= min){
-                    min = len;
-                    min_now = moves[i];
+    if (event->button()&Qt::LeftButton) {
+        QRect a(QPoint(0, 0), pool.size() * 0.1);
+        a.moveCenter(event->pos());
+        bool f_rect = true;
+        for (int i = 0; i < clumbs.size(); i++)
+            if (clumbs[i].intersects(a)){
+                QRect a1 = clumbs[i].intersected(a);
+                float s_peresecheniya = a1.width() * a1.height();
+                float s_clumb = a.width() * a.height();
+                if (s_clumb * 0.6 >= s_peresecheniya){
+                    f_rect = false;
+                    break;
                 }
             }
-        min_p.append(min_now);
-        ant_move = min_now;
+        for(Circle c:c_clumbs)
+            if(intersects_circle(c, a))
+                return;
+        if(!(pool.contains(a.center())) && f_rect)
+            clumbs.append(a);
+    }
+    else {
+        bool f_circle = true;
+        Circle c = {event->pos(), 20};
+        for (int i = 0; i < c_clumbs.size(); i++)
+            if (intersects(c_clumbs[i], c)) {
+                f_circle = false;
+                break;
+            }
+        for (QRect i:clumbs)
+            if (intersects_circle(c, i))
+                return;
+        if (!(pool.contains(c.center)) && f_circle)
+            c_clumbs.append(c);
     }
     repaint();
 }
+
+
+
+bool MainWindow::intersects(Circle c1, Circle c2)
+{
+    QPoint c_len(c1.center - c2.center);
+    int c = c_len.x() * c_len.x() + c_len.y() * c_len.y();
+    return (c < (c1.radius + c2.radius) * (c1.radius + c2.radius));
+}
+
+
 
 bool MainWindow::contains(Circle c, QPoint p)
 {
@@ -101,3 +93,14 @@ bool MainWindow::contains(Circle c, QPoint p)
 }
 
 
+
+bool MainWindow::intersects_circle(Circle c, QRect r)
+{
+    for (int i = 0; i < r.width(); i++) {
+        for (int j = 0; j < r.height(); j++) {
+            if (contains(c, r.topLeft() + QPoint(i, j)))
+                return true;
+        }
+    }
+    return false;
+}
