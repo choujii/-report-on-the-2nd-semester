@@ -6,12 +6,7 @@
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
-
-struct Circle {
-    QPoint center;
-    int radius;
-};
-
+enum{LEFT,RIGHT,UNDIFINED};
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -23,13 +18,11 @@ public:
     void mousePressEvent(QMouseEvent *event);
 
 private:
+    int classify(QLine n,QPoint m);
     Ui::MainWindow *ui;
-    QImage grass = QImage("C:/Users/0potter0/Desktop/flowerbeds/images/flower.jpeg"), flower = QImage("C:/Users/0potter0/Desktop/flowerbeds/images/flower.jpeg");
-    QVector<QRect> clumbs;
-    QVector<Circle> c_clumbs;
-    QRect pool = QRect(QPoint(200,150), QSize(400,300));
-    bool intersects(Circle c1, Circle c2);
-    bool contains(Circle c, QPoint p);
-    bool intersects_circle(Circle c, QRect r);
+    QPoint f1;
+    QPoint f2;
+
+    int a = 0;
 };
 #endif // MAINWINDOW_H
